@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Collision Detector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            position: relative;
+            background: url('indbg.png') no-repeat center center fixed;
+            background-size: cover;
+        }
+        h1 {
+            text-align: center;
+            color: #ccc;
+        }
+        form {
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: rgba(75, 71, 71, 0.652);
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: aliceblue;
+        }
+        input[type="number"],
+        input[type="file"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            background-color: #000000c4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #000000c4;
+        }
+        #result {
+            text-align: center;
+            margin-top: 20px;
+            color: azure;
+        }
+        #canvas-container {
+            margin-top: 20px;
+            display: none; /* Hide the canvas container initially */
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: #f8f8f8;
+        }
+        footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            color: #ccc;
+            padding: 10px 0;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <h1>Space Collision Detector</h1>
+    <form id="collision-form">
+        <label for="spacecraft-size">Spacecraft Size (meters):</label>
+        <input type="number" id="spacecraft-size" name="spacecraft_size" required>
+
+        <label for="spacecraft-speed">Spacecraft Speed (km/s):</label>
+        <input type="number" id="spacecraft-speed" name="spacecraft_speed" required>
+
+        <label for="debris-image">Upload Debris Image:</label>
+        <input type="file" id="debris-image" name="debris_image" accept="image/*" required>
+
+        <input type="submit" value="Calculate Collision Chance">
+    </form>
+
+    <div id="result"></div>
+    <div id="canvas-container">
+        <canvas id="collision-canvas" width="800" height="600"></canvas>
+    </div>
+
+    <footer>
+        &copy; 2024 Space Collision Detector. All rights reserved to Hewin & Sriram.
+    </footer>
+
+    <script>
+        let spacecraftSize, spacecraftSpeed;
+        const spacecraft = new Image();
+        spacecraft.src = 'spacecraft.png'; // Path to your spacecraft image
+        const spacecraftWidth = 50; // Adjust as necessary
+        const spacecraftHeight = 50; // Adjust as necessary
+
+        const canvas = document.getElementById('collision-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let spacecraftX = (canvas.width - spacecraftWidth) / 2;
+        let spacecraftY = (canvas.height - spacecraftHeight) / 2;
+        let img;
+
+        document.getElementById('collision-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            spacecraftSize = parseFloat(document.getElementById('spacecraft-size').value);
+            spacecraftSpeed = parseFloat(document.getElementById('spacecraft-speed').value);
+            const debrisImage = document.getElementById('debris-image').files[0];
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(spacecraft, spacecraftX, spacecraftY, spacecraftWidth, spacecraftHeight);
+                    updateCollisionChance();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(debrisImage);
+
+            document.getElementById('canvas-container').style.display = 'block';
+        });
+
+        canvas.addEventListener('mousemove', function(e) {
+            const mousePos = getMousePos(canvas, e);
+            spacecraftX = mousePos.x - spacecraftWidth / 2;
+            spacecraftY = mousePos.y - spacecraftHeight / 2;
+            drawCanvas();
+            updateCollisionChance();
+        });
+
+        function getMousePos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+
+        function drawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(spacecraft, spacecraftX, spacecraftY, spacecraftWidth, spacecraftHeight);
+        }
+
+        function updateCollisionChance() {
+            const debrisArea = { x: 300, y: 200, width: 200, height: 200 }; // Example coordinates of concentrated debris area
+            const spacecraftCenterX = spacecraftX + spacecraftWidth / 2;
+            const spacecraftCenterY = spacecraftY + spacecraftHeight / 2;
+
+            const distanceToDebrisCenter = Math.sqrt(
+                Math.pow(spacecraftCenterX - (debrisArea.x + debrisArea.width / 2), 2) +
+                Math.pow(spacecraftCenterY - (debrisArea.y + debrisArea.height / 2), 2)
+            );
+
+            // Calculate collision chance based on distance to debris center (dummy formula)
+            const maxDistance = Math.sqrt(Math.pow(canvas.width, 2) + Math.pow(canvas.height, 2));
+            const collisionChance = 100 * (1 - distanceToDebrisCenter / maxDistance);
+
+            document.getElementById('result').innerHTML = `<h2>Collision Chance: ${Math.max(0, collisionChance.toFixed(2))}%</h2>`;
+        }
+    </script>
+</body>
+</html>
